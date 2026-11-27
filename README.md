@@ -1,59 +1,40 @@
-# SSH Honeypot
+# Low-Interaction SSH Honeypot
 
-A small, low-interaction Python project for learning about SSH honeypots in a controlled environment.
+A small Python SSH honeypot for controlled network security research. It uses Paramiko to handle SSH protocol details, records connection and authentication-attempt metadata, and rejects authentication attempts. It does not provide a shell or real system access.
 
-The project is intended to record limited connection metadata, such as the source address and attempted username. It must not store passwords or other submitted secrets.
+## Features
 
-> **Status:** Under development. Keep it bound to your own machine while building and testing.
-
-## Project structure
-
-```text
-.
-├── config/
-│   └── honeypot.ini
-├── keys/
-├── logs/
-├── src/
-│   └── ssh_honeypot/
-│       ├── __init__.py
-│       └── server.py
-├── .gitignore
-├── README.md
-└── requirements.txt
-```
+- Configurable bind address, port, log path, and SSH host-key path
+- Logs timestamps, source IPs, attempted usernames, and authentication methods
+- Does not log or retain submitted passwords
+- Rejects authentication attempts and does not execute commands
 
 ## Requirements
 
-- Python 3
-- Packages listed in `requirements.txt`
+- Python 3.10 or later
+- A virtual environment
+- Dependencies listed in `pyproject.toml` and/or `requirements.txt`
 
 ## Setup
 
-From the project root, create and activate a virtual environment:
+From the repository root:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
 ```
 
-Install the dependencies:
+If you are installing from `requirements.txt` instead:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-To leave the virtual environment, run:
-
-```bash
-deactivate
-```
-
 ## Configuration
 
-Edit `config/honeypot.ini` to set the listener address, port, and log-file path.
-
-For local development, use:
+Edit `config/honeypot.ini`:
 
 ```ini
 [server]
@@ -62,38 +43,80 @@ port = 2222
 
 [logging]
 log_file = logs/attempts.log
+
+[key]
+key_path = keys/host_ed25519
 ```
 
-Keep the listener on `127.0.0.1` while developing. Do not put passwords, API keys, or other secrets in the config file.
+The application validates the configured bind address. If you change it from `127.0.0.1`, make sure the new address is assigned to the VM and is explicitly permitted by the allowlist in `src/ssh_honeypot/server.py`.
 
-## Running
+## Run
 
-Run the server from the project root:
+With the virtual environment active:
+
+```bash
+ssh-honeypot
+```
+
+Alternatively:
 
 ```bash
 python src/ssh_honeypot/server.py
 ```
 
-The server implementation is still under development, so this command will work once `server.py` has been implemented.
+Stop the server with `Ctrl-C`.
 
-## Testing
+## Local test
 
-Test only against the local listener with dummy credentials. For example, if the server is listening on port `2222`:
+In a second terminal, connect to the local listener:
 
 ```bash
 ssh -p 2222 testuser@127.0.0.1
 ```
 
-Check that the log records only the intended metadata and contains no password.
+Authentication should fail. Review the configured log file for connection and authentication-attempt events. Do not use a real password for testing.
 
-## Data handling
+## Logs and host keys
 
-- Do not store, print, or otherwise retain passwords submitted by clients.
-- Treat connection logs as sensitive because they may contain IP addresses and usernames.
-- Keep logs out of public repositories.
-- Keep generated host keys private and out of version control.
+The application creates the log and key directories as needed. The SSH host key is generated on first run and reused on later runs. Keep the `keys/` directory private.
+
+Logs may contain source IP addresses and usernames, which can be sensitive. Restrict access to the log files and rotate or delete them according to your research needs.
 
 ## Safety
 
-Use this project only on systems and networks you own or are authorized to test. Keep it isolated during development. Do not expose it to the internet without first reviewing the security, privacy, and authorization implications.
+- Run only in an isolated virtual machine or similarly controlled environment.
+- Restrict inbound connections to authorized test sources.
+- Restrict outbound network traffic from the VM.
+- Do not run the honeypot on a production host or a machine containing sensitive data.
+- Do not add shell access, command execution, or password/key logging.
+- Keep the bind address and firewall configuration limited to the intended test network.
+- Test only on networks and systems you are authorized to monitor.
 
+## Project layout
+
+```text
+config/
+  honeypot.ini
+src/
+  ssh_honeypot/
+    __init__.py
+    server.py
+logs/
+keys/
+requirements.txt
+pyproject.toml
+```
+
+## Development
+
+Activate the virtual environment before running or editing the project:
+
+```bash
+source .venv/bin/activate
+```
+
+Install the package in editable mode after changing project metadata or dependencies:
+
+```bash
+python -m pip install -e .
+```

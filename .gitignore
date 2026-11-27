@@ -1,7 +1,8 @@
 *.py[cod]
 .env
 logs/*
+!logs/.gitkeep
 keys/*
+!keys/.gitkeep
 __pycache__/
 .venv/
-
